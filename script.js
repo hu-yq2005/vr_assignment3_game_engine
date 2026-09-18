@@ -12,7 +12,17 @@ window.onload = function () {
     var speed = 1.2;
     var direction = 1;
     var time = 0;
+    var keys = {};
+    var mouthOpen = false;
+    var isMoving = false;
+    window.addEventListener("keydown", function (event) {
+    keys[event.key] = true;
 
+});
+
+window.addEventListener("keyup", function (event) {
+    keys[event.key] = false;
+});
 
     // ==================================================
     // Draw one arm
@@ -24,7 +34,7 @@ window.onload = function () {
         context.save();
 
         // Move the coordinate system to the shoulder
-        context.translate(side * 65, -20);
+        context.translate(side * 85, -20);
 
         // Rotate the arm around the shoulder
         context.rotate(angle);
@@ -148,7 +158,11 @@ window.onload = function () {
         context.save();
 
         // Walking cycle
-        var walkCycle = Math.sin(time * 5);
+        var walkCycle = 0;
+
+        if (isMoving) {
+            walkCycle = Math.sin(time * 5);
+        }
 
         // Slight vertical bounce while walking
         var bounce = Math.abs(walkCycle) * 6;
@@ -576,8 +590,24 @@ window.onload = function () {
 
         context.beginPath();
 
-        context.moveTo(-20, -45);
-        context.lineTo(20, -45);
+        if (mouthOpen) {
+
+            context.ellipse(
+                0, -45,
+                20, 12,
+                0,
+                0,
+                2 * Math.PI
+            );
+
+            context.fillStyle = "#8B3A3A";
+            context.fill();
+
+        } else {
+
+            context.moveTo(-20, -45);
+            context.lineTo(20, -45);
+        }
 
         context.strokeStyle = "black";
         context.lineWidth = 2;
@@ -587,6 +617,59 @@ window.onload = function () {
         // Restore the coordinate system
         context.restore();
     }
+
+
+    function update() {
+
+        // Assume the cow is not moving
+        isMoving = false;
+
+        // Move left
+        if (keys["ArrowLeft"] || keys["a"]) {
+            cowX -= speed;
+            direction = -1;
+            isMoving = true;
+        }
+
+        // Move right
+        if (keys["ArrowRight"] || keys["d"]) {
+            cowX += speed;
+            direction = 1;
+            isMoving = true;
+        }
+
+        // Move up
+        if (keys["ArrowUp"] || keys["w"]) {
+            cowY -= speed;
+            isMoving = true;
+        }
+
+        // Move down
+        if (keys["ArrowDown"] || keys["s"]) {
+            cowY += speed;
+            isMoving = true;
+        }
+
+        // Space controls the mouth
+        mouthOpen = keys[" "] === true;
+
+        // Keep the cow inside the canvas
+        if (cowX < 140) {
+            cowX = 140;
+        }
+
+        if (cowX > canvas.width - 140) {
+            cowX = canvas.width - 140;
+        }
+
+        if (cowY < 250) {
+            cowY = 250;
+        }
+
+        if (cowY > canvas.height - 170) {
+            cowY = canvas.height - 170;
+        }
+}
 
 
     // ==================================================
@@ -608,21 +691,7 @@ window.onload = function () {
         time += 0.02;
 
 
-        // Move the entire cow
-        cowX += speed * direction;
-
-
-        // Turn around at the right side
-        if (cowX > 380) {
-            direction = -1;
-        }
-
-
-        // Turn around at the left side
-        if (cowX < 120) {
-            direction = 1;
-        }
-
+       update();
 
         // Draw the new frame
         drawCow(cowX, cowY);
