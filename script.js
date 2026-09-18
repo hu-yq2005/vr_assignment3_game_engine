@@ -5,6 +5,16 @@ window.onload = function () {
     var canvas = document.getElementById("myCanvas");
     var context = canvas.getContext("2d");
 
+    var fpsSlider = document.getElementById("fpsSlider");
+    var fpsValue = document.getElementById("fpsValue");
+
+    var targetFPS = 60;
+
+    fpsSlider.addEventListener("input", function () {
+        targetFPS = Number(fpsSlider.value);
+        fpsValue.textContent = targetFPS;
+    });
+
     // Animation variables
     var cowX = 250;
     var cowY = 280;
@@ -15,6 +25,12 @@ window.onload = function () {
     var keys = {};
     var mouthOpen = false;
     var isMoving = false;
+
+    //fix timestamp variables
+    var timestep = 1000 / 60;
+    var lastTime = 0;
+    var accumulator = 0;
+    var lastRenderTime = 0;
     window.addEventListener("keydown", function (event) {
     keys[event.key] = true;
 
@@ -618,6 +634,24 @@ window.addEventListener("keyup", function (event) {
         context.restore();
     }
 
+    // ==================================================
+    // Draw the current game state
+    // ==================================================
+
+    function draw() {
+
+        // Remove the previous frame
+        context.clearRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        // Draw the current state
+        drawCow(cowX, cowY);
+    }
+
 
     function update() {
 
@@ -653,6 +687,11 @@ window.addEventListener("keyup", function (event) {
         // Space controls the mouth
         mouthOpen = keys[" "] === true;
 
+        // Update walking animation
+        if (isMoving) {
+            time += 0.02;
+        }
+
         // Keep the cow inside the canvas
         if (cowX < 140) {
             cowX = 140;
@@ -669,39 +708,54 @@ window.addEventListener("keyup", function (event) {
         if (cowY > canvas.height - 170) {
             cowY = canvas.height - 170;
         }
+
+        
+
 }
 
+function mainLoop(timestamp) {
 
-    // ==================================================
-    // Animation loop
-    // ==================================================
-
-    function animate() {
-
-        // Remove the previous frame
-        context.clearRect(
-            0,
-            0,
-            canvas.width,
-            canvas.height
-        );
-
-
-        // Update time
-        time += 0.02;
-
-
-       update();
-
-        // Draw the new frame
-        drawCow(cowX, cowY);
-
-
-        // Request the next frame
-        requestAnimationFrame(animate);
+    // Initialize timers on the first frame
+    if (lastTime === 0) {
+        lastTime = timestamp;
+        lastRenderTime = timestamp;
     }
 
 
+    // ---------------------------------------------
+    // FIXED SIMULATION
+    // ---------------------------------------------
+
+    var elapsed = timestamp - lastTime;
+    lastTime = timestamp;
+
+    accumulator += elapsed;
+
+    while (accumulator >= timestep) {
+
+        update(timestep);
+
+        accumulator -= timestep;
+    }
+
+
+    // ---------------------------------------------
+    // VARIABLE RENDERING
+    // ---------------------------------------------
+
+    var renderInterval = 1000 / targetFPS;
+
+    if (timestamp - lastRenderTime >= renderInterval) {
+
+        draw();
+
+        lastRenderTime = timestamp;
+    }
+
+
+    requestAnimationFrame(mainLoop);
+}
+
     // Start the animation
-    animate();
+    requestAnimationFrame(mainLoop);
 };
